@@ -113,7 +113,7 @@ def main(namespace):
 		items = get_devices(f, namespace.section)
 		generate_table(items, namespace)
 	if namespace.output is not None:
-		print("Готово. Файл отчета сохранен с именем \"{}/{}.html\"".format(os.getcwd(), namespace.output))
+		print("Готово. Файл отчета сохранен с именем \"{}/{}.odt\"".format(os.getcwd(), namespace.output))
 	else:
 		print("Готово. Файл отчета сформирован в новом документе LibreOffice, вам необходимо сохранить его вручную.")
 
