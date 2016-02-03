@@ -13,12 +13,12 @@ def create_parser():
 		)
 	parser.add_argument("-f", "--file", required=True, help="Путь к экспортированному файлу ветви реестра HKLM")
 	parser.add_argument("-s", "--section", required=True, choices=["USB", "USBSTOR", "SCSI"] ,help="Название ветви реестра для анализа")
-	parser.add_argument("-o", "--output", required=True,help="Имя файла для сохранения отчета (без расширения)")
+	parser.add_argument("-o", "--output", required=True, help="Имя файла для сохранения отчета (без расширения)")
 	return parser
 
 
 def main(namespace):
-	with open(namespace.file, "r", encoding="UTF-16") as f:
+	with open(namespace.file, "r", encoding="cp1251") as f:
 		devices = get_devices(f, namespace.section)
 		generate_report(devices, namespace)
 	print("Готово. Файл отчета сохранен с именем \"{}/{}.html\"".format(os.getcwd(), namespace.output))
@@ -47,37 +47,43 @@ def generate_report(devices, namespace):
 
 
 def get_devices(f, section):
-	new_section_re = re.compile(r"\\SYSTEM\\ControlSet001\\Enum\\" + section + r"\\(\S+)\\(\S+)$")
-	other_section_re = re.compile(r"\\SYSTEM\\ControlSet001\\Enum\\(\S+)\\(\S+)\\(\S+)$")
-	time_re = re.compile("(\d+.\d+\.\d+\s+\S\s+\d+:\d+)")
-	param_name_re = {
-		"DeviceDesc" : re.compile("DeviceDesc"),
-		"LocationInformation" : re.compile("LocationInformation"),
-		"FriendlyName" : re.compile("FriendlyName")
+	item_re = re.compile(r"SYSTEM\\ControlSet\d*\\Enum\\" + section + r"\\([^\\^\s]+)\\([^\\^\s]+)\"$")
+	not_item_re = re.compile(r"\\SYSTEM\\ControlSet\d*\\Enum\\([^\\^\s]+)\\([^\\^\s]+)\\([^\\^\s]+)")
+	time_re = re.compile("(\d+\-\d+\-\d+\s*\S\s*\d+:\d+:\d+)")
+	params_re = {
+		"DeviceDesc": re.compile("\"DeviceDesc\""),
+		"LocationInformation": re.compile("\"LocationInformation\""),
+		"FriendlyName": re.compile("\"FriendlyName\"")
 	}
-	param_value_re = re.compile("\S+\s+([\S\s]+)$")
+	param_value_re = re.compile("\S+\s+\"(.+)\"$")
 	devices = {}
 	vp_id, instance_id = None, None
 	for line in f:
-		sres = new_section_re.search(line)
-		if sres != None:
-			vp_id, instance_id = sres.groups()
-			f.readline()	# пропуск строки "Название класса"
-			if devices.get(vp_id) == None:
+		item = item_re.search(line)
+		not_item = not_item_re.search(line)
+		if item is not None:
+			vp_id, instance_id = item.groups()
+			if devices.get(vp_id) is None:
 				devices[vp_id] = {}
-			if devices[vp_id].get(instance_id) == None:
+			if devices[vp_id].get(instance_id) is None:
 				devices[vp_id][instance_id] = {}
-			devices[vp_id][instance_id]["time"] = time_re.search(f.readline()).group(1)	# сохранение временной метки
+			new_str = f.readline()
+			devices[vp_id][instance_id]["time"] = time_re.search(new_str).group(1)	# сохранение временной метки
+			continue
+		elif item is None and not_item is not None:
+			vp_id = None
 			continue
 		# if other_section_re.search(line) != None:
 		# 	break
-		for key_re in param_name_re.keys():
-			sres = param_name_re[key_re].search(line)
-			if sres != None and vp_id != None:
-				f.readline()	# пропускаем строку с типом параметра
-				temp_res = param_value_re.search(f.readline())
-				if devices[vp_id][instance_id].get(key_re) == None:
-					devices[vp_id][instance_id][key_re] = temp_res.group(1) if temp_res != None else "-"
+		for key_re in params_re.keys():
+			item = params_re[key_re].search(line)
+			if item is not None and vp_id is not None:
+				new_str = f.readline()	# пропускаем строку с типом параметра
+				new_str = f.readline()
+				new_str = f.readline()
+				temp_res = param_value_re.search(new_str)
+				if devices[vp_id][instance_id].get(key_re) is None:
+					devices[vp_id][instance_id][key_re] = temp_res.group(1) if temp_res is not None else "-"
 	return devices
 
 
