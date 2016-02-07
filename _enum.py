@@ -18,7 +18,7 @@ def create_parser():
 
 
 def main(namespace):
-	with open(namespace.file, "r", encoding="cp1251") as f:
+	with open(namespace.file, "r", encoding="UTF-16") as f:
 		devices = get_devices(f, namespace.section)
 		generate_report(devices, namespace)
 	print("Готово. Файл отчета сохранен с именем \"{}/{}.html\"".format(os.getcwd(), namespace.output))

@@ -18,7 +18,7 @@ def create_parser():
 	return parser
 
 def get_devices(f, section):
-	item_re = re.compile(r"SYSTEM\\ControlSet\d*\\Enum\\" + section + r"\\([^\\^\s]+)\\([^\\^\s]+)\"$")
+	item_re = re.compile(r"SYSTEM\\ControlSet[0-9]{3}\\Enum\\" + section + r"\\([^\\^\s]+)\\([^\\^\s]+)\"")
 	not_item_re = re.compile(r"\\SYSTEM\\ControlSet\d*\\Enum\\([^\\^\s]+)\\([^\\^\s]+)\\([^\\^\s]+)")
 	time_re = re.compile("(\d+\-\d+\-\d+\s*\S\s*\d+:\d+:\d+)")
 	params_re = {
@@ -109,7 +109,7 @@ def generate_table(items, namespace):
 		document.dispose()
 
 def main(namespace):
-	with open(namespace.file, "r", encoding="cp1251") as f:
+	with open(namespace.file, "r", encoding="UTF-16") as f:
 		items = get_devices(f, namespace.section)
 		generate_table(items, namespace)
 	if namespace.output is not None:
